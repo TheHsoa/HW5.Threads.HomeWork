@@ -5,18 +5,17 @@ using System.Threading.Tasks;
 
 namespace ThreadsBattle
 {
-    class Program
+    public class Program
     {
-        private static long N;
+        private static int N;
         private static int A;
         private static int B;
-        private static long M;
+        private static int M;
         private static readonly Random Random = new Random(Guid.NewGuid().GetHashCode());
 
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
-            var argss = new [] { "5", "10", "0", "10" };
-            ParseArgs(argss);
+           ParseArgs(args);
             var queue = new Queue<long>();
 
             AsyncAddRandomNumbersInQueue(queue, N);
@@ -26,26 +25,37 @@ namespace ThreadsBattle
 
         private static void ParseArgs(string[] args)
         {
-            N = Convert.ToInt64(args[0]);
-            M = Convert.ToInt64(args[1]);
-            A = Convert.ToInt32(args[2]);
-            B = Convert.ToInt32(args[3]);
+            try
+            {
+                N = Convert.ToInt32(args[0]);
+                N = Convert.ToInt32(args[0]);
+                M = Convert.ToInt32(args[1]);
+                A = Convert.ToInt32(args[2]);
+                B = Convert.ToInt32(args[3]);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                Console.WriteLine("Заданы не все входные параметры");
+            }
+            catch (FormatException)
+            {
+                Console.WriteLine("Входные параметры должны быть целыми числами");
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Неверно заданы входные параметры");
+            }
+
         }
 
-        private static void AsyncTakeNumbersFromQueueInThreadAndDetermineIsPrime(Queue<long> queue, long m)
+        private static void AsyncTakeNumbersFromQueueInThreadAndDetermineIsPrime(Queue<long> queue, int m)
         {
-            for (var i = 0; i < m; i++)
-            {
-                Task.Factory.StartNew(() => TakeNumberFromQueueAndDetermineIsPrime(queue));
-            }
+            Parallel.For(0, m, x => { Task.Factory.StartNew(() => TakeNumberFromQueueAndDetermineIsPrime(queue)); });
         }
 
         private static void AsyncAddRandomNumbersInQueue(Queue<long> queue, long n)
         {
-            for (var i = 0; i < n; i++)
-            {
-                Task.Factory.StartNew(() => AddRandomNumberToQueue(queue));
-            }
+            Parallel.For(0, n, x => { Task.Factory.StartNew(() => AddRandomNumberToQueue(queue)); });
         }
 
         private static void AddRandomNumberToQueue(Queue<long> queue)
@@ -59,24 +69,24 @@ namespace ThreadsBattle
 
         private static void TakeNumberFromQueueAndDetermineIsPrime(Queue<long> queue)
         {
-                 while (true)
-                 {
-            Thread.Sleep(Random.Next(1000));
-            try
+            while (true)
             {
-                var number = queue.Dequeue();
-                WriteIsPrimeNumber(number);
-
-            }
-            catch (InvalidOperationException e)
-            {
-                Console.WriteLine(e.Message);
-                    Thread.Sleep(Random.Next(5000));
-            }
+                Thread.Sleep(Random.Next(1000));
+                try
+                {
+                    var number = queue.Dequeue();
+                    WriteIsPrimeNumber(number);
 
                 }
+                catch (InvalidOperationException e)
+                {
+                    Console.WriteLine(e.Message);
+                    Thread.Sleep(Random.Next(5000));
+                }
+            }
         }
 
+        // Определение числа на простоту взял тут https://habrahabr.ru/post/205318/
         private static bool IsPrime(long number)
         {
             if (number <= 1)
@@ -87,48 +97,52 @@ namespace ThreadsBattle
             for (var i = 0; i < 100; i++)
             {
                 var a = Random.Next() % (number - 2) + 2;
-                if (GCD(a, number) != 1)
+                if (Gcd(a, number) != 1 || Pows(a, number - 1, number) != 1)
+                {
                     return false;
-                if (pows(a, number - 1, number) != 1)
-                    return false;
+                }
             }
             return true;
         }
 
-        static long mul(long a, long b, long m)
+        private static long Mul(long a, long b, long m)
         {
             if (b == 1)
                 return a;
-            if (b % 2 == 0)
+            if (b % 2 != 0)
             {
-                long t = mul(a, b / 2, m);
-                return (2 * t) % m;
+                return (Mul(a, b - 1, m) + a) % m;
             }
-            return (mul(a, b - 1, m) + a) % m;
+            var t = Mul(a, b / 2, m);
+            return (2 * t) % m;
         }
 
-        static long pows(long a, long b, long m)
+        private static long Pows(long a, long b, long m)
         {
             if (b == 0)
                 return 1;
-            if (b % 2 == 0)
+            if (b % 2 != 0)
             {
-                long t = pows(a, b / 2, m);
-                return mul(t, t, m) % m;
+                return (Mul(Pows(a, b - 1, m), a, m)) % m;
             }
-            return (mul(pows(a, b - 1, m), a, m)) % m;
+            var t = Pows(a, b / 2, m);
+            return Mul(t, t, m) % m;
         }
 
-        static long GCD(long a, long b)
+        private static long Gcd(long a, long b)
         {
-            return b == 0 ? a : GCD(b, a % b);
+            while (b != 0)
+            {
+                var a1 = a;
+                a = b;
+                b = a1 % b;
+            }
+            return a;
         }
 
         private static void WriteIsPrimeNumber(long number)
         {
             Console.WriteLine(IsPrime(number) ? $"Число {number} простое" : $"Число {number} не простое");
         }
-
-
     }
 }
