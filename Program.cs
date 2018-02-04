@@ -19,18 +19,18 @@ namespace ThreadsBattle
             {
                 var queue = new ConcurrentQueue<int>();
 
-                AsyncAddRandomNumbersInQueue(queue, options.N, options.A, options.B);
-                AsyncTakeNumbersFromQueueInThreadAndDetermineIsPrime(queue, options.M);
+                MultithreadingAddRandomNumbersInQueue(queue, options.N, options.A, options.B);
+                MultithreadingTakeNumbersFromQueueInThreadAndDetermineIsPrime(queue, options.M);
             }
             Console.ReadKey();
         }
 
-        private static void AsyncTakeNumbersFromQueueInThreadAndDetermineIsPrime(ConcurrentQueue<int> queue, int m)
+        private static void MultithreadingTakeNumbersFromQueueInThreadAndDetermineIsPrime(ConcurrentQueue<int> queue, int m)
         {
             Parallel.For(0, m, x => { Task.Run(() => TakeNumberFromQueueAndDetermineIsPrime(queue)); });
         }
 
-        private static void AsyncAddRandomNumbersInQueue(ConcurrentQueue<int> queue, int n, int a, int b)
+        private static void MultithreadingAddRandomNumbersInQueue(ConcurrentQueue<int> queue, int n, int a, int b)
         {
             Parallel.For(0, n, x => { Task.Run(() => AddRandomNumberToQueue(queue, a, b)); });
         }
@@ -50,9 +50,7 @@ namespace ThreadsBattle
             {
                 RandomSleepAction(MaxSleepingTime);
 
-                int number;
-
-                if (queue.TryDequeue(out number))
+                if (queue.TryDequeue(out var number))
                 {
                     WriteIsPrimeNumber(number);
                 }
