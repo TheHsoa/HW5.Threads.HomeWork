@@ -4,11 +4,12 @@ namespace ThreadsBattle
 {
     public static class Calculating
     {
+        private static readonly int Seed = Environment.TickCount;
+        private static readonly Random Random = new Random(Seed);
+
         // Определение числа на простоту взял тут https://habrahabr.ru/post/205318/
         public static bool IsPrime(long number)
         {
-            var random = new Random(Guid.NewGuid().GetHashCode());
-
             if (number <= 1)
                 return false;
             if (number == 2)
@@ -16,7 +17,7 @@ namespace ThreadsBattle
 
             for (var i = 0; i < 100; i++)
             {
-                var a = random.Next() % (number - 2) + 2;
+                var a = Random.Next() % (number - 2) + 2;
                 if (Gcd(a, number) != 1 || Pows(a, number - 1, number) != 1)
                 {
                     return false;
