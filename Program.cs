@@ -2,59 +2,64 @@
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using CommandLine;
 
 namespace ThreadsBattle
 {
     public class Program
     {
-        private static readonly Random Random = new Random(Guid.NewGuid().GetHashCode());
-        private static readonly Action<int> RandomSleepAction = x => Thread.Sleep(Random.Next(x));
         private const int MaxSleepingTime = 1000;
+        private static readonly Random Random = new Random(Guid.NewGuid().GetHashCode());
 
         public static void Main(string[] args)
         {
             var options = new Options();
 
-            if(CommandLine.Parser.Default.ParseArguments(args, options))
+            if (Parser.Default.ParseArguments(args, options))
             {
                 var queue = new ConcurrentQueue<int>();
-
-                MultithreadingAddRandomNumbersInQueue(queue, options.N, options.A, options.B);
-                MultithreadingTakeNumbersFromQueueInThreadAndDetermineIsPrime(queue, options.M);
+                StartJobs(options.N,
+                    () => InfinityJob(
+                        () => JobWithSleep(
+                            () => queue.Enqueue(Random.Next(options.A, options.B)))));
+                StartJobs(options.M,
+                    () => InfinityJob(
+                        () => JobWithSleep(
+                            () => TakeNumberFromQueueAndDetermineIsPrime(queue))));
             }
+
             Console.ReadKey();
         }
 
-        private static void MultithreadingTakeNumbersFromQueueInThreadAndDetermineIsPrime(ConcurrentQueue<int> queue, int m)
+        private static void Sleep(int wait)
         {
-            Parallel.For(0, m, x => { Task.Run(() => TakeNumberFromQueueAndDetermineIsPrime(queue)); });
+            Thread.Sleep(wait);
         }
 
-        private static void MultithreadingAddRandomNumbersInQueue(ConcurrentQueue<int> queue, int n, int a, int b)
+        private static int GetWaitPeriod()
         {
-            Parallel.For(0, n, x => { Task.Run(() => AddRandomNumberToQueue(queue, a, b)); });
+            return Random.Next(MaxSleepingTime);
         }
 
-        private static void AddRandomNumberToQueue(ConcurrentQueue<int> queue, int a, int b)
+        private static void JobWithSleep(Action job)
         {
-            while (true)
-            {
-                RandomSleepAction(MaxSleepingTime);
-                queue.Enqueue(Random.Next(a, b));
-            }
+            job();
+            Sleep(GetWaitPeriod());
+        }
+
+        private static void InfinityJob(Action job)
+        {
+            while (true) job();
+        }
+
+        private static void StartJobs(int num, Action job)
+        {
+            for (var i = 0; i < num; i++) Task.Run(job);
         }
 
         private static void TakeNumberFromQueueAndDetermineIsPrime(ConcurrentQueue<int> queue)
         {
-            while (true)
-            {
-                RandomSleepAction(MaxSleepingTime);
-
-                if (queue.TryDequeue(out var number))
-                {
-                    WriteIsPrimeNumber(number);
-                }
-            }
+            if (queue.TryDequeue(out var number)) WriteIsPrimeNumber(number);
         }
 
         private static void WriteIsPrimeNumber(int number)

@@ -23,6 +23,7 @@ namespace ThreadsBattle
                     return false;
                 }
             }
+
             return true;
         }
 
@@ -34,6 +35,7 @@ namespace ThreadsBattle
             {
                 return (Mul(a, b - 1, m) + a) % m;
             }
+
             var t = Mul(a, b / 2, m);
             return (2 * t) % m;
         }
@@ -46,6 +48,7 @@ namespace ThreadsBattle
             {
                 return (Mul(Pows(a, b - 1, m), a, m)) % m;
             }
+
             var t = Pows(a, b / 2, m);
             return Mul(t, t, m) % m;
         }
@@ -58,6 +61,7 @@ namespace ThreadsBattle
                 a = b;
                 b = a1 % b;
             }
+
             return a;
         }
     }
