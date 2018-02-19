@@ -6,7 +6,7 @@ using CommandLine;
 
 namespace ThreadsBattle
 {
-    public class Program
+    public static class Program
     {
         private const int MaxSleepingTime = 1000;
         private static readonly Random Random = new Random(Guid.NewGuid().GetHashCode());
@@ -18,14 +18,19 @@ namespace ThreadsBattle
             if (Parser.Default.ParseArguments(args, options))
             {
                 var queue = new ConcurrentQueue<int>();
-                StartJobs(options.N,
+
+                Action enqueue = () => queue.Enqueue(Random.Next(options.A, options.B));
+                enqueue.WithSleep().InfinityJob().StartJobs(options.N);
+                TakeNumberFromQueueAndDetermineIsPrimeAction(queue).WithSleep().InfinityJob().StartJobs(options.M);
+
+/*                StartJobs(options.N,
                     () => InfinityJob(
                         () => JobWithSleep(
                             () => queue.Enqueue(Random.Next(options.A, options.B)))));
                 StartJobs(options.M,
                     () => InfinityJob(
                         () => JobWithSleep(
-                            () => TakeNumberFromQueueAndDetermineIsPrime(queue))));
+                            () => TakeNumberFromQueueAndDetermineIsPrime(queue))));*/
             }
 
             Console.ReadKey();
@@ -41,25 +46,34 @@ namespace ThreadsBattle
             return Random.Next(MaxSleepingTime);
         }
 
-        private static void JobWithSleep(Action job)
+        private static Action WithSleep(this Action job)
         {
-            job();
-            Sleep(GetWaitPeriod());
+            return () =>
+            {
+                job();
+                Sleep(GetWaitPeriod());
+            };
         }
 
-        private static void InfinityJob(Action job)
+        private static Action InfinityJob(this Action job)
         {
-            while (true) job();
+            return () =>
+            {
+                while (true) job();
+            };
         }
 
-        private static void StartJobs(int num, Action job)
+        private static void StartJobs(this Action job, int num)
         {
             for (var i = 0; i < num; i++) Task.Run(job);
         }
 
-        private static void TakeNumberFromQueueAndDetermineIsPrime(ConcurrentQueue<int> queue)
+        private static Action TakeNumberFromQueueAndDetermineIsPrimeAction(ConcurrentQueue<int> queue)
         {
-            if (queue.TryDequeue(out var number)) WriteIsPrimeNumber(number);
+            return () =>
+            {
+                if (queue.TryDequeue(out var number)) WriteIsPrimeNumber(number);
+            };
         }
 
         private static void WriteIsPrimeNumber(int number)
